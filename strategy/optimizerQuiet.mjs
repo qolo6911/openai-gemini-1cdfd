@@ -256,7 +256,7 @@ async function main() {
   console.log('开始网格搜索优化...');
   const startTime = Date.now();
   const trainResults = await gridSearchOptimization(train, PARAMETER_SPACE, {
-    maxCombinations: 50  // 减少到50个组合，约25分钟完成
+    maxCombinations: 10  // 快速测试：10个组合
   });
   const duration = Date.now() - startTime;
   console.log(`优化完成！耗时: ${(duration / 1000).toFixed(1)}秒`);
