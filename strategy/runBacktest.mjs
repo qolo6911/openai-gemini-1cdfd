@@ -40,11 +40,19 @@ async function main() {
 
   // 获取历史数据
   let candles;
-  const useRealData = process.env.USE_REAL_DATA === 'true';
-  const dataSource = process.env.DATA_SOURCE || 'mock'; // mock, yahoo, csv
+  const dataSource = process.env.DATA_SOURCE || 'auto'; // auto, yahoo, csv, mock
+
+  // 真实数据文件路径（优先使用）
+  const realDataFile = join(dataDir, 'XAUUSDm_D1.csv');
 
   try {
-    if (dataSource === 'yahoo' && useRealData) {
+    // 优先使用真实XAUUSD数据（如果存在）
+    if (dataSource === 'auto' && existsSync(realDataFile)) {
+      console.log('数据源: 真实XAUUSD历史数据 (XAUUSDm_D1.csv)');
+      console.log('来源: GitHub - qolo6911/openai-gemini-1cdfd/tree/data/XAUUSDm');
+      candles = await loadFromCSV(realDataFile);
+      console.log('');
+    } else if (dataSource === 'yahoo') {
       console.log('数据源: Yahoo Finance (黄金期货 GC=F)');
       const cacheFile = join(dataDir, 'xauusd_yahoo.csv');
 
@@ -60,13 +68,13 @@ async function main() {
 
       console.log(`成功获取 ${candles.length} 条真实历史数据\n`);
     } else if (dataSource === 'csv') {
-      console.log('数据源: 本地CSV文件');
+      console.log('数据源: 自定义CSV文件');
       const csvFile = process.env.CSV_FILE || join(dataDir, 'xauusd.csv');
       candles = await loadFromCSV(csvFile);
-      console.log(`成功加载 ${candles.length} 条数据\n`);
+      console.log('');
     } else {
       console.log('数据源: 模拟数据（用于演示）');
-      console.log('提示: 设置环境变量 USE_REAL_DATA=true DATA_SOURCE=yahoo 使用真实数据\n');
+      console.log('提示: 真实数据文件未找到，使用模拟数据\n');
 
       // 生成模拟数据：1年，起始价格2000
       candles = generateMockData(365, 2000);

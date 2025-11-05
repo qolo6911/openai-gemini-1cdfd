@@ -158,7 +158,9 @@ export function generateMockData(days = 365, startPrice = 2000) {
 
 /**
  * 从本地CSV文件加载数据
- * CSV格式: Date,Open,High,Low,Close,Volume
+ * 支持多种CSV格式：
+ * - Date,Open,High,Low,Close,Volume
+ * - time,Open,High,Low,Close,Volume,spread,RealVolume
  * @param {string} filePath - CSV文件路径
  * @returns {Promise<Object[]>} K线数据数组
  */
@@ -168,23 +170,56 @@ export async function loadFromCSV(filePath) {
     const lines = content.trim().split('\n');
     const candles = [];
 
+    if (lines.length < 2) {
+      throw new Error('CSV文件数据不足');
+    }
+
+    // 解析标题行，查找列索引
+    const headers = lines[0].toLowerCase().split(',');
+    const timeIdx = headers.findIndex(h => h.includes('time') || h.includes('date'));
+    const openIdx = headers.findIndex(h => h.includes('open'));
+    const highIdx = headers.findIndex(h => h.includes('high'));
+    const lowIdx = headers.findIndex(h => h.includes('low'));
+    const closeIdx = headers.findIndex(h => h.includes('close'));
+    const volumeIdx = headers.findIndex(h => h.includes('volume') && !h.includes('real'));
+
+    // 验证必需的列是否存在
+    if (timeIdx === -1 || openIdx === -1 || highIdx === -1 || lowIdx === -1 || closeIdx === -1) {
+      throw new Error('CSV文件缺少必需的列（time/date, open, high, low, close）');
+    }
+
     for (let i = 1; i < lines.length; i++) { // 跳过标题行
       const parts = lines[i].split(',');
       if (parts.length < 5) continue;
 
+      const timeStr = parts[timeIdx].trim();
+      const open = parseFloat(parts[openIdx]);
+      const high = parseFloat(parts[highIdx]);
+      const low = parseFloat(parts[lowIdx]);
+      const close = parseFloat(parts[closeIdx]);
+      const volume = volumeIdx !== -1 && parts[volumeIdx] ? parseFloat(parts[volumeIdx]) : 0;
+
+      // 验证数据有效性
+      if (isNaN(open) || isNaN(high) || isNaN(low) || isNaN(close)) {
+        console.warn(`跳过无效数据行 ${i}: ${lines[i]}`);
+        continue;
+      }
+
       candles.push({
-        time: new Date(parts[0]),
-        timestamp: new Date(parts[0]).getTime(),
-        open: parseFloat(parts[1]),
-        high: parseFloat(parts[2]),
-        low: parseFloat(parts[3]),
-        close: parseFloat(parts[4]),
-        volume: parts[5] ? parseFloat(parts[5]) : 0
+        time: new Date(timeStr),
+        timestamp: new Date(timeStr).getTime(),
+        open,
+        high,
+        low,
+        close,
+        volume: isNaN(volume) ? 0 : volume
       });
     }
 
     // 按时间升序排序
     candles.sort((a, b) => a.timestamp - b.timestamp);
+
+    console.log(`成功加载 ${candles.length} 条数据，时间范围: ${candles[0].time.toISOString().split('T')[0]} 至 ${candles[candles.length - 1].time.toISOString().split('T')[0]}`);
 
     return candles;
   } catch (error) {
