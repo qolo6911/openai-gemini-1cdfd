@@ -160,3 +160,175 @@ export function isRangebound(middleBand, index, angleThreshold = 30, lookback = 
   // 判断角度是否在阈值范围内（接近水平）
   return Math.abs(angle) < angleThreshold;
 }
+
+/**
+ * 计算真实波幅 (ATR - Average True Range)
+ * @param {Object[]} candles - K线数据数组 [{high, low, close}]
+ * @param {number} period - 周期（默认14）
+ * @returns {number[]} ATR数组
+ */
+export function calculateATR(candles, period = 14) {
+  const atr = [];
+  const tr = []; // True Range
+
+  for (let i = 0; i < candles.length; i++) {
+    if (i === 0) {
+      // 第一根K线的TR就是高低差
+      tr.push(candles[i].high - candles[i].low);
+      atr.push(null);
+    } else {
+      // TR = max(high-low, |high-prevClose|, |low-prevClose|)
+      const highLow = candles[i].high - candles[i].low;
+      const highClose = Math.abs(candles[i].high - candles[i - 1].close);
+      const lowClose = Math.abs(candles[i].low - candles[i - 1].close);
+
+      tr.push(Math.max(highLow, highClose, lowClose));
+
+      if (i < period) {
+        atr.push(null);
+      } else if (i === period) {
+        // 第一个ATR是TR的简单平均
+        let sum = 0;
+        for (let j = 1; j <= period; j++) {
+          sum += tr[j];
+        }
+        atr.push(sum / period);
+      } else {
+        // 后续ATR使用指数移动平均
+        // ATR = (Previous ATR * (period - 1) + Current TR) / period
+        const prevATR = atr[i - 1];
+        atr.push((prevATR * (period - 1) + tr[i]) / period);
+      }
+    }
+  }
+
+  return atr;
+}
+
+/**
+ * 计算指数移动平均线 (EMA)
+ * @param {number[]} data - 价格数据数组
+ * @param {number} period - 周期
+ * @returns {number[]} EMA数组
+ */
+export function calculateEMA(data, period) {
+  const ema = [];
+  const multiplier = 2 / (period + 1);
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      ema.push(null);
+    } else if (i === period - 1) {
+      // 第一个EMA是SMA
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        sum += data[i - j];
+      }
+      ema.push(sum / period);
+    } else {
+      // EMA = (Price - Previous EMA) * Multiplier + Previous EMA
+      const value = (data[i] - ema[i - 1]) * multiplier + ema[i - 1];
+      ema.push(value);
+    }
+  }
+
+  return ema;
+}
+
+/**
+ * 计算ADX (Average Directional Index) - 趋势强度指标
+ * @param {Object[]} candles - K线数据数组 [{high, low, close}]
+ * @param {number} period - 周期（默认14）
+ * @returns {number[]} ADX数组
+ */
+export function calculateADX(candles, period = 14) {
+  const adx = [];
+  const plusDM = []; // +DM
+  const minusDM = []; // -DM
+  const tr = []; // True Range
+  const plusDI = []; // +DI
+  const minusDI = []; // -DI
+  const dx = []; // DX
+
+  for (let i = 0; i < candles.length; i++) {
+    if (i === 0) {
+      plusDM.push(0);
+      minusDM.push(0);
+      tr.push(candles[i].high - candles[i].low);
+      plusDI.push(null);
+      minusDI.push(null);
+      dx.push(null);
+      adx.push(null);
+      continue;
+    }
+
+    // 计算+DM和-DM
+    const highDiff = candles[i].high - candles[i - 1].high;
+    const lowDiff = candles[i - 1].low - candles[i].low;
+
+    let currentPlusDM = 0;
+    let currentMinusDM = 0;
+
+    if (highDiff > lowDiff && highDiff > 0) {
+      currentPlusDM = highDiff;
+    }
+    if (lowDiff > highDiff && lowDiff > 0) {
+      currentMinusDM = lowDiff;
+    }
+
+    plusDM.push(currentPlusDM);
+    minusDM.push(currentMinusDM);
+
+    // 计算TR
+    const highLow = candles[i].high - candles[i].low;
+    const highClose = Math.abs(candles[i].high - candles[i - 1].close);
+    const lowClose = Math.abs(candles[i].low - candles[i - 1].close);
+    tr.push(Math.max(highLow, highClose, lowClose));
+
+    // 计算平滑的+DM, -DM, TR
+    if (i >= period) {
+      let smoothedPlusDM, smoothedMinusDM, smoothedTR;
+
+      if (i === period) {
+        smoothedPlusDM = plusDM.slice(1, period + 1).reduce((a, b) => a + b, 0);
+        smoothedMinusDM = minusDM.slice(1, period + 1).reduce((a, b) => a + b, 0);
+        smoothedTR = tr.slice(1, period + 1).reduce((a, b) => a + b, 0);
+      } else {
+        const prevIndex = i - 1;
+        smoothedPlusDM = plusDI[prevIndex] * smoothedTR / 100 * (period - 1) + plusDM[i];
+        smoothedMinusDM = minusDI[prevIndex] * smoothedTR / 100 * (period - 1) + minusDM[i];
+        smoothedTR = tr[prevIndex] * (period - 1) + tr[i];
+      }
+
+      // 计算+DI和-DI
+      const currentPlusDI = smoothedTR !== 0 ? (smoothedPlusDM / smoothedTR) * 100 : 0;
+      const currentMinusDI = smoothedTR !== 0 ? (smoothedMinusDM / smoothedTR) * 100 : 0;
+
+      plusDI.push(currentPlusDI);
+      minusDI.push(currentMinusDI);
+
+      // 计算DX
+      const diSum = currentPlusDI + currentMinusDI;
+      const currentDX = diSum !== 0 ? (Math.abs(currentPlusDI - currentMinusDI) / diSum) * 100 : 0;
+      dx.push(currentDX);
+
+      // 计算ADX（DX的EMA）
+      if (i === period * 2 - 1) {
+        const adxValue = dx.slice(period, period * 2).reduce((a, b) => a + b, 0) / period;
+        adx.push(adxValue);
+      } else if (i >= period * 2) {
+        const adxValue = (adx[adx.length - 1] * (period - 1) + dx[dx.length - 1]) / period;
+        adx.push(adxValue);
+      } else {
+        adx.push(null);
+      }
+    } else {
+      plusDI.push(null);
+      minusDI.push(null);
+      dx.push(null);
+      adx.push(null);
+    }
+  }
+
+  return adx;
+}

@@ -14,6 +14,8 @@
     "dev:bun": "bun --watch bun.mjs",
     "strategy:backtest": "node strategy/runBacktest.mjs",
     "strategy:backtest:real": "USE_REAL_DATA=true DATA_SOURCE=yahoo node strategy/runBacktest.mjs",
-    "strategy:multi": "node strategy/runMultiTimeframe.mjs"
+    "strategy:multi": "node strategy/runMultiTimeframe.mjs",
+    "strategy:optimize": "node strategy/optimizer.mjs",
+    "strategy:optimize:m15": "DATA_FILE=strategy/data/XAUUSDm_M15.csv node strategy/optimizer.mjs"
   }
 }
