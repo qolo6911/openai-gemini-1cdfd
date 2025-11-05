@@ -2,3 +2,7 @@ node_modules
 .netlify
 .vercel
 .wrangler
+
+# Strategy backtest data and results
+strategy/data/
+strategy/results/
