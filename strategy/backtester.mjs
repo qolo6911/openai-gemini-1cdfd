@@ -94,17 +94,21 @@ export class Backtester {
     this.positionSize = positionSize; // 每次交易的仓位大小（手数或比例）
     this.currentTrade = null;
     this.stats = new BacktestStats();
+    this.verbose = true; // 是否输出详细信息
   }
 
   /**
    * 运行回测
    * @param {Object[]} candles - K线数据
+   * @param {boolean} verbose - 是否输出详细信息
    * @returns {Object} 回测结果
    */
-  run(candles) {
-    console.log(`开始回测，初始资金: $${this.initialBalance}`);
-    console.log(`数据周期: ${candles[0].time.toISOString().split('T')[0]} 至 ${candles[candles.length - 1].time.toISOString().split('T')[0]}`);
-    console.log(`K线数量: ${candles.length}\n`);
+  run(candles, verbose = true) {
+    if (verbose) {
+      console.log(`开始回测，初始资金: $${this.initialBalance}`);
+      console.log(`数据周期: ${candles[0].time.toISOString().split('T')[0]} 至 ${candles[candles.length - 1].time.toISOString().split('T')[0]}`);
+      console.log(`K线数量: ${candles.length}\n`);
+    }
 
     this.strategy.reset();
     this.balance = this.initialBalance;
@@ -190,7 +194,9 @@ export class Backtester {
       unrealizedPL: 0
     };
 
-    console.log(`[${time.toISOString().split('T')[0]}] 开仓 ${type} @ $${price.toFixed(2)} | ${reason}`);
+    if (this.verbose) {
+      console.log(`[${time.toISOString().split('T')[0]}] 开仓 ${type} @ $${price.toFixed(2)} | ${reason}`);
+    }
   }
 
   /**
@@ -242,11 +248,13 @@ export class Backtester {
       }
     }
 
-    console.log(
-      `[${time.toISOString().split('T')[0]}] 平仓 ${this.currentTrade.type} @ $${price.toFixed(2)} | ` +
-      `盈亏: $${profit.toFixed(2)} (${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%) | ` +
-      `余额: $${this.balance.toFixed(2)} | ${reason}`
-    );
+    if (this.verbose) {
+      console.log(
+        `[${time.toISOString().split('T')[0]}] 平仓 ${this.currentTrade.type} @ $${price.toFixed(2)} | ` +
+        `盈亏: $${profit.toFixed(2)} (${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%) | ` +
+        `余额: $${this.balance.toFixed(2)} | ${reason}`
+      );
+    }
 
     this.currentTrade = null;
   }
