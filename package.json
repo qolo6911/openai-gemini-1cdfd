@@ -13,6 +13,7 @@
     "start:bun": "bun bun.mjs",
     "dev:bun": "bun --watch bun.mjs",
     "strategy:backtest": "node strategy/runBacktest.mjs",
-    "strategy:backtest:real": "USE_REAL_DATA=true DATA_SOURCE=yahoo node strategy/runBacktest.mjs"
+    "strategy:backtest:real": "USE_REAL_DATA=true DATA_SOURCE=yahoo node strategy/runBacktest.mjs",
+    "strategy:multi": "node strategy/runMultiTimeframe.mjs"
   }
 }
