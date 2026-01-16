@@ -2,3 +2,20 @@ node_modules
 .netlify
 .vercel
 .wrangler
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.Python
+venv/
+ENV/
+build/
+dist/
+logs/
+reports/
+.pytest_cache/
+.mypy_cache/
+.pyinstaller/
+config.json
