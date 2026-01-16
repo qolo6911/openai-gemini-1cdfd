@@ -1,0 +1,49 @@
+data:
+  symbol: XAUUSD
+  source: mt5
+  start_date: '2020-01-01'
+  end_date: '2024-01-01'
+  timeframes:
+    execution: M15
+    regimes:
+      - H1
+      - H4
+  mt5:
+    login: null
+    password: null
+    server: null
+
+features:
+  ema_periods: [21, 50, 100]
+  atr_window: 14
+  rsi_window: 14
+  ema_slope_window: 5
+
+labeling:
+  k1_tp: 1.5
+  k2_sl: 1.0
+  holding_period: 24
+  spread_points: 16
+  point_value: 0.01
+
+training:
+  lookback: 128
+  batch_size: 64
+  num_epochs: 100
+  early_stop_patience: 10
+  lr: 0.001
+  device: auto
+  num_workers: 4
+  val_split: 0.2
+  grad_clip: 1.0
+
+model:
+  num_channels: [64, 128, 256]
+  kernel_size: 3
+  dropout: 0.2
+
+risk_management:
+  atr_multiplier_tp: 1.5
+  atr_multiplier_sl: 1.0
+  risk_per_trade: 0.003
+  max_position: 3
